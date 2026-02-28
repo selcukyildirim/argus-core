@@ -74,9 +74,30 @@ Automatically classifies:
 - RAW — Read After Write  
 - WAR — Write After Read  
 
+### 📐 Contention Density Scoring
+
+Each hotspot is scored by **Conflict Density** = `conflicts / affected_txs`:
+
+| Density | Severity | Meaning |
+|---------|----------|------------------------------------------|
+| < 1.0   | LOW      | Normal contention, parallelizable         |
+| 1.0–3.0 | MEDIUM   | Moderate bottleneck                       |
+| 3.0–5.0 | HIGH     | Significant serialization pressure        |
+| > 5.0   | CRITICAL | Block serializer — "network enemy"        |
+
+### �️ Protocol Label Registry
+
+45+ well-known Ethereum contracts are labeled instantly (no API calls):
+
+- Uniswap V2/V3 (Router, Factory, Pools)  
+- Tokens (WETH, USDC, USDT, DAI, WBTC, LINK, UNI)  
+- Aave V2/V3, Curve, 1inch, OpenSea, Blur  
+- Lido (stETH/wstETH), EigenLayer, MetaMask Swap Router  
+- Unknown contracts fall back to address display  
+
 ---
 
-## 🏗️ Architecture
+## �🏗️ Architecture
 
 ### Provider
 
@@ -95,6 +116,13 @@ Automatically classifies:
 - Post-processes access lists  
 - Identifies slot overlaps  
 - Generates dependency graphs  
+- Computes contention density per contract  
+
+### Data Sink
+
+- **NDJSON Stream** — zero-alloc serialization via 64KB `BufWriter`  
+- **StarRocks Stream Load** — HTTP PUT for OLAP analytics (feature-gated)  
+- Three row schemas: `BlockSummary`, `ConflictRow`, `ContentionEvent`  
 
 ---
 
@@ -102,13 +130,14 @@ Automatically classifies:
 
 **Block:** 21,000,000  
 **Transactions:** 181  
+**Storage Touches:** 304 entries across 133 txs  
 **Total Conflicts:** 70  
 
-| Rank | Contract Type                     | Conflicts | Hazard Type | Slots | Txs |
-|------|-----------------------------------|-----------|-------------|-------|-----|
-| 1    | ERC-20 / Meme Token               | 66        | WAW         | 1     | 12  |
-| 2    | MEV Bot / Multi-Token Aggregator  | 3         | WAW         | 1     | 3   |
-| 3    | MetaMask / Swap Router            | 1         | WAW         | 1     | 2   |
+| # | Severity | Protocol / Contract | Hazard | Txs | Conflicts | Density |
+|---|----------|---------------------|--------|-----|-----------|---------|
+| 1 | 🔴 CRITICAL | ERC-20 / Meme Token | WAW | 12 | 66 | **5.50** |
+| 2 | 🟡 MEDIUM | MEV Bot / Aggregator | WAW | 3 | 3 | 1.00 |
+| 3 | 🟢 LOW | MetaMask / Swap Router | WAW | 2 | 1 | 0.50 |
 
 
 ### 🔍 Observation
@@ -143,9 +172,45 @@ Argus identified this bottleneck using only public RPC infrastructure.
 
 ---
 
+## 📦 Workspace Structure
+
+```
+argus-core/
+├── crates/core/           # Domain types, error handling
+├── crates/provider/       # RPC, Prefetcher, Labels, DeFi Slots
+├── crates/analyzer/       # Inspector, Graph, Reporter, Sink
+└── crates/cli/            # CLI entry point
+```
+
+---
+
 ## 🚀 Getting Started
 
 ### Build
 
 ```bash
 cargo build --release
+```
+
+### Analyze a Block
+
+```bash
+# Standard analysis
+argus analyze --rpc-url $RPC_URL --block 21000000
+
+# Export to NDJSON file
+argus analyze --rpc-url $RPC_URL --block 21000000 --sink ndjson:output.ndjson
+
+# JSON conflict graph output
+argus analyze --rpc-url $RPC_URL --block 21000000 --json
+
+# Dry run (EmptyDB — no RPC prefetch)
+argus analyze --rpc-url $RPC_URL --block 21000000 --dry-run
+```
+
+### Environment Variable
+
+```bash
+export ARGUS_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+argus analyze --block 21000000
+```
