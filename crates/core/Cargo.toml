@@ -1,0 +1,12 @@
+[package]
+name = "argus-core"
+version = "0.1.0"
+edition = "2021"
+description = "Domain models, shared types, and error handling for the Argus conflict analyzer."
+
+[dependencies]
+alloy-primitives = { workspace = true }
+serde = { workspace = true }
+smallvec = { workspace = true }
+thiserror = { workspace = true }
+hex = { workspace = true }

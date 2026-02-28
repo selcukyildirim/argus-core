@@ -1,0 +1,21 @@
+[package]
+name = "argus-provider"
+version = "0.1.0"
+edition = "2021"
+description = "Data abstraction layer for Argus — blockchain data retrieval and state prefetching."
+
+[dependencies]
+argus-core = { path = "../core" }
+alloy-consensus = "1"
+alloy-eips = { workspace = true }
+alloy-primitives = { workspace = true }
+alloy-provider = { workspace = true }
+alloy-rpc-types = { workspace = true }
+alloy-transport-http = { workspace = true }
+revm = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+reqwest = { version = "0.12", features = ["json"] }

@@ -1,0 +1,31 @@
+[package]
+name = "argus-analyzer"
+version = "0.1.0"
+edition = "2021"
+description = "EVM simulation engine and conflict graph builder for Argus."
+
+[dependencies]
+argus-core = { path = "../core" }
+argus-provider = { path = "../provider" }
+alloy-primitives = { workspace = true }
+rayon = { workspace = true }
+revm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+smallvec = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+# Optional: StarRocks Stream Load via HTTP
+reqwest = { version = "0.12", features = ["json"], optional = true }
+
+[features]
+default = []
+starrocks = ["reqwest"]
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "simulation"
+harness = false
